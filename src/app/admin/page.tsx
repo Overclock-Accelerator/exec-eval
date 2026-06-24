@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import QuadrantChart from '@/components/QuadrantChart'
 import QuestionBreakdown from '@/components/QuestionBreakdown'
 import { HeaderBar, Wordmark } from '@/components/Brand'
@@ -33,7 +34,13 @@ export default function AdminPage() {
   const [mode, setMode] = useState<ViewMode>('individual')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [showQr, setShowQr] = useState(false)
+  const [surveyUrl, setSurveyUrl] = useState('https://exec-eval.vercel.app/')
   const pinRef = useRef('')
+
+  useEffect(() => {
+    setSurveyUrl(window.location.origin + '/')
+  }, [])
 
   // Always read responses with the current PIN attached.
   const fetchResponses = useCallback(async () => {
@@ -158,11 +165,45 @@ export default function AdminPage() {
         lead="AI Readiness"
         title="· Live Admin"
         right={
-          <span className="text-sm text-mute tabular-nums">
-            {loading ? 'Loading…' : `${responses.length} response${responses.length !== 1 ? 's' : ''}`}
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-mute tabular-nums">
+              {loading ? 'Loading…' : `${responses.length} response${responses.length !== 1 ? 's' : ''}`}
+            </span>
+            <button
+              onClick={() => setShowQr(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal/40 text-teal hover:bg-teal/10 transition-colors text-sm font-medium"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <path d="M14 14h3v3M20 14v.01M14 20h.01M17 20h.01M20 17v3" />
+              </svg>
+              Show QR
+            </button>
+          </div>
         }
       />
+
+      {/* QR overlay — for collecting responses live, then dismiss to reveal */}
+      {showQr && (
+        <div
+          onClick={() => setShowQr(false)}
+          className="fixed inset-0 z-50 dot-grid flex flex-col items-center justify-center cursor-pointer"
+        >
+          <p className="text-xs tracking-[0.25em] uppercase text-amber mb-4">AI Readiness Check</p>
+          <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight mb-10">
+            Scan to <span className="text-teal">begin</span>
+          </h2>
+          <div className="bg-white p-6 rounded-2xl">
+            <QRCodeSVG value={surveyUrl} size={340} level="M" marginSize={0} />
+          </div>
+          <p className="mt-8 text-mute text-sm">
+            {surveyUrl.replace(/^https?:\/\//, '')}
+          </p>
+          <p className="mt-6 text-[#3a3f47] text-xs">Click anywhere to close</p>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="px-6 pt-5 flex justify-center">
