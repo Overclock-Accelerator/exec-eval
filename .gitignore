@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.gstack/
+
+# Local-only design reference (large binary)
+74_APEI_AI_Board_Brief_Final.pdf
+*.pdf

@@ -12,11 +12,16 @@ The goal: surface visually that the audience is in the early stages of their AI 
 
 | Path | Purpose |
 |------|---------|
-| `/` | Survey — share this / generate QR |
-| `/admin` | Admin quadrant — open during presentation |
+| `/` | Survey — the URL the QR points to. Branded intro → 16 questions → thank-you |
+| `/qr` | Big scannable QR for a slide (auto-targets the deployment origin) |
+| `/admin` | Live admin — 3 views: All Respondents / Room Average / By Question |
 | `/thank-you` | Post-submission confirmation |
-| `/api/submit` | POST `{ answers: Record<string, number> }` |
-| `/api/responses` | GET all responses |
+| `/api/submit` | POST `{ answers: Record<string, number> }` → saves, returns `{x,y}` |
+| `/api/responses` | GET all responses (incl. raw `answers`) |
+| `/api/seed?n=20` | POST — insert N plausible exec responses (demo/rehearsal data) |
+| `/api/reset` | POST — delete ALL responses (wired to the "Clear all" admin button) |
+
+**Presentation controls** live in the admin footer: `+ Demo data` (calls `/api/seed`) and `Clear all` (confirm dialog → `/api/reset`). Wipe demo data before the real session.
 
 ---
 
@@ -37,7 +42,7 @@ Single source of truth: `src/lib/questions.ts`. Never hardcode questions elsewhe
 | x7 | 4 | Async AI agent operations |
 | x8 | 5 | Autonomous actions in live systems (hardest) |
 
-X weight sum: 21 — max raw score: 105
+X weight sum: 21. Each question also has a `short` label (used by the By-Question view).
 
 ### Y-Axis: Conceptual Understanding (easy → hard)
 
@@ -52,18 +57,24 @@ X weight sum: 21 — max raw score: 105
 | y7 | 4 | Evaluating AI approach |
 | y8 | 4 | Workflow readiness gap analysis (hardest) |
 
-Y weight sum: 20 — max raw score: 100
+Y weight sum: 20.
 
 ---
 
 ## Scoring
 
+Weighted raw score, then **rescaled across the achievable 1–5 range** so a fully
+novice respondent lands at the origin (0,0) and the bottom-left cluster hugs the
+corner — makes the live reveal land harder.
+
 ```
-X score = sum(answer × weight) / (21 × 5) × 10
-Y score = sum(answer × weight) / (20 × 5) × 10
+raw      = sum(answer × weight)          // answer ∈ 1..5
+min      = weightSum                     // all answers = 1
+score    = (raw − min) / (weightSum×5 − min) × 10   // clamped 0–10
 ```
 
-Both normalized 0–10. See `calculateScores()` in `src/lib/questions.ts`.
+All-1s → 0, all-3s ("Somewhat") → 5.0 (quadrant midpoint), all-5s → 10. See
+`calculateScores()` / `rescale()` in `src/lib/questions.ts`.
 
 ---
 
@@ -80,10 +91,21 @@ Both normalized 0–10. See `calculateScores()` in `src/lib/questions.ts`.
 
 ## Stack
 
-- Next.js 14 App Router, TypeScript, Tailwind CSS
+- Next.js 16 App Router (Turbopack), React 19, TypeScript, Tailwind **v4**
 - Neon Postgres (`@neondatabase/serverless`) for persistence
+- `qrcode.react` for the /qr page
 - SVG quadrant chart in `src/components/QuadrantChart.tsx`
 - No auth on /admin yet (see TODOs)
+
+## Brand / visual design
+
+The UI matches Ahmed's "AI Capacity Building" deck (`74_APEI_AI_Board_Brief_Final.pdf`,
+gitignored — kept locally for reference). Pure black background with a subtle
+dot-grid texture, **teal** (`#2de3c7`) primary accent, **amber** (`#f2a93b`)
+secondary, white text, gray (`#8a8f98`) muted. SF Pro / system sans. Brand tokens
+are defined in `src/app/globals.css` under `@theme` (`bg-ink`, `text-teal`,
+`text-amber`, `text-mute`, `bg-surface`, `border-line`) plus a `.dot-grid` utility
+and `dot-in` / `fade-up` keyframes. Logo + header chrome live in `src/components/Brand.tsx`.
 
 ---
 
@@ -107,29 +129,35 @@ npm run dev
 
 ---
 
-## TODOs for Jed
+## TODOs / backlog
 
-- [ ] Auth on /admin — simple env var PIN check in middleware
+Done in this pass: dark deck-matched theme, By-Question view, /qr page, scoring
+rescale, reset + seed endpoints with admin controls, dot reveal animation, mobile
+pass (tested at 390px).
+
+Still open:
+- [ ] Auth on /admin — simple env var PIN check in middleware (it's an obscure URL today)
 - [ ] Optional name field in survey — show initials on dots in admin
-- [ ] Mobile responsiveness pass (test at 375px)
 - [ ] CSV export button on admin
-- [ ] Reset responses button with confirmation
 - [ ] Session cookie to prevent duplicate submissions
-- [ ] /qr page — QR code for survey URL (use `qrcode.react`)
-- [ ] Animate dots appearing in admin for presentation reveal effect
-- [ ] Label dots with initials once name collection is added
+- [ ] Lock `/api/seed` + `/api/reset` behind the same admin auth before wider use
 
 ---
 
 ## Key Files
 
 ```
-src/lib/questions.ts           Questions, weights, calculateScores()
-src/lib/storage.ts             Upstash Redis read/write
-src/app/page.tsx               Survey (client component)
-src/app/admin/page.tsx         Admin view (auto-refreshes every 10s)
-src/app/thank-you/page.tsx     Confirmation page
-src/components/QuadrantChart.tsx  SVG quadrant chart
-src/app/api/submit/route.ts    POST endpoint
-src/app/api/responses/route.ts GET endpoint
+src/lib/questions.ts              Questions, weights, short labels, calculateScores()/rescale()
+src/lib/storage.ts                Neon Postgres read/write (+ clearAllResponses)
+src/app/page.tsx                  Survey: branded intro + question flow (client)
+src/app/admin/page.tsx            Admin: 3-view tabs + presentation controls (refresh 5s)
+src/app/qr/page.tsx               QR code page for the slide
+src/app/thank-you/page.tsx        Confirmation page
+src/components/Brand.tsx          Logo, Wordmark, HeaderBar (brand chrome)
+src/components/QuadrantChart.tsx  SVG quadrant chart (teal dots, amber avg, reveal anim)
+src/components/QuestionBreakdown.tsx  Per-question average bars (the "where they fall off" view)
+src/app/api/submit/route.ts       POST — save a response
+src/app/api/responses/route.ts    GET — all responses
+src/app/api/seed/route.ts         POST — seed demo data
+src/app/api/reset/route.ts        POST — clear all responses
 ```

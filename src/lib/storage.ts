@@ -43,6 +43,12 @@ export async function saveResponse(
   return { id, answers, x, y, submittedAt: new Date().toISOString() }
 }
 
+export async function clearAllResponses(): Promise<void> {
+  const sql = getSql()
+  await initDb()
+  await sql`DELETE FROM responses`
+}
+
 export async function getAllResponses(): Promise<SurveyResponse[]> {
   try {
     const sql = getSql()
