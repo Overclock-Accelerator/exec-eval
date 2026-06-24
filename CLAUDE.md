@@ -14,7 +14,7 @@ The goal: surface visually that the audience is in the early stages of their AI 
 |------|---------|
 | `/` | Survey — the URL the QR points to. Branded intro → 16 questions → thank-you |
 | `/qr` | Big scannable QR for a slide (auto-targets the deployment origin) |
-| `/admin` | Live admin — 3 views: All Respondents / Room Average / By Question |
+| `/admin` | Live admin — 3 views (All Respondents / Room Average / By Question) + "Show QR" overlay. PIN-gated via `ADMIN_PIN` env var |
 | `/thank-you` | Post-submission confirmation |
 | `/api/submit` | POST `{ answers: Record<string, number> }` → saves, returns `{x,y}` |
 | `/api/responses` | GET all responses (incl. raw `answers`) |
@@ -131,16 +131,16 @@ npm run dev
 
 ## TODOs / backlog
 
-Done in this pass: dark deck-matched theme, By-Question view, /qr page, scoring
-rescale, reset + seed endpoints with admin controls, dot reveal animation, mobile
-pass (tested at 390px).
+Done: dark deck-matched theme + real Overclock logo, By-Question view, /qr page
++ in-admin QR overlay, scoring rescale (difficulty-weighted), reset + seed
+endpoints with admin controls, dot reveal animation, mobile pass (390px),
+PIN gate (`ADMIN_PIN`) on /admin + responses/seed/reset, Y-axis questions
+reworded to be business-applied / de-jargoned.
 
 Still open:
-- [ ] Auth on /admin — simple env var PIN check in middleware (it's an obscure URL today)
 - [ ] Optional name field in survey — show initials on dots in admin
 - [ ] CSV export button on admin
 - [ ] Session cookie to prevent duplicate submissions
-- [ ] Lock `/api/seed` + `/api/reset` behind the same admin auth before wider use
 
 ---
 
