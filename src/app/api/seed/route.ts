@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { ALL_QUESTIONS, calculateScores, type Question } from '@/lib/questions'
-import { saveResponse } from '@/lib/storage'
+import { calculateScores, type Question } from '@/lib/questions'
+import { getQuestions, saveResponse } from '@/lib/storage'
 
 // Generate plausible exec-audience answers. Most respondents are early on the
 // journey (low answers, especially on the harder/higher-weight questions), with
@@ -19,12 +19,14 @@ export async function POST(req: Request) {
     const { searchParams } = new URL(req.url)
     const n = Math.max(1, Math.min(60, Number(searchParams.get('n')) || 20))
 
+    const questions = await getQuestions()
+
     let saved = 0
     for (let i = 0; i < n; i++) {
       const advanced = Math.random() < 0.15
       const answers: Record<string, number> = {}
-      for (const q of ALL_QUESTIONS) answers[q.id] = sampleAnswer(q, advanced)
-      const { x, y } = calculateScores(answers)
+      for (const q of questions) answers[q.id] = sampleAnswer(q, advanced)
+      const { x, y } = calculateScores(answers, questions)
       await saveResponse(answers, x, y)
       saved++
     }

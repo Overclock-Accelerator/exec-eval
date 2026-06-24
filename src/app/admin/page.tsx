@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import QuadrantChart from '@/components/QuadrantChart'
 import QuestionBreakdown from '@/components/QuestionBreakdown'
+import QuestionEditor from '@/components/QuestionEditor'
 import { HeaderBar } from '@/components/Brand'
+import { ALL_QUESTIONS, type Question } from '@/lib/questions'
 
 interface Response {
   id: string
@@ -14,16 +16,18 @@ interface Response {
   submittedAt: string
 }
 
-type ViewMode = 'individual' | 'average' | 'questions'
+type ViewMode = 'individual' | 'average' | 'questions' | 'editor'
 
 const TABS: { key: ViewMode; label: string }[] = [
   { key: 'individual', label: 'All Respondents' },
   { key: 'average', label: 'Room Average' },
   { key: 'questions', label: 'By Question' },
+  { key: 'editor', label: 'Edit Questions' },
 ]
 
 export default function AdminPage() {
   const [responses, setResponses] = useState<Response[]>([])
+  const [questions, setQuestions] = useState<Question[]>(ALL_QUESTIONS)
   const [mode, setMode] = useState<ViewMode>('individual')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -32,6 +36,25 @@ export default function AdminPage() {
 
   useEffect(() => {
     setSurveyUrl(window.location.origin + '/')
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/questions')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.questions) && data.questions.length > 0) {
+          setQuestions(data.questions)
+        }
+      })
+      .catch(() => {
+        // keep bundled defaults
+      })
+  }, [])
+
+  // Merge an edited question back into local state so the By-Question view and
+  // the editor's own fields reflect the save without a full refetch.
+  const handleQuestionSaved = useCallback((q: Question) => {
+    setQuestions((prev) => prev.map((p) => (p.id === q.id ? q : p)))
   }, [])
 
   const fetchResponses = useCallback(async () => {
@@ -137,13 +160,19 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Main view */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
-        {mode === 'questions' ? (
+      {/* Main view — editor is tall, so it scrolls from the top; the rest centers */}
+      <div
+        className={`flex-1 flex justify-center p-6 sm:p-10 ${
+          mode === 'editor' ? 'items-start overflow-y-auto' : 'items-center'
+        }`}
+      >
+        {mode === 'editor' ? (
+          <QuestionEditor questions={questions} onSaved={handleQuestionSaved} />
+        ) : mode === 'questions' ? (
           responses.length === 0 ? (
             <p className="text-[#3a3f47] text-sm">No responses yet.</p>
           ) : (
-            <QuestionBreakdown responses={responses} />
+            <QuestionBreakdown responses={responses} questions={questions} />
           )
         ) : (
           <div className="w-full max-w-2xl">

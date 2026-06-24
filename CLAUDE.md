@@ -14,10 +14,11 @@ The goal: surface visually that the audience is in the early stages of their AI 
 |------|---------|
 | `/` | Survey — the URL the QR points to. Branded intro → 16 questions → thank-you |
 | `/qr` | Big scannable QR for a slide (auto-targets the deployment origin) |
-| `/admin` | Live admin — 3 views (All Respondents / Room Average / By Question) + "Show QR" overlay. No auth (open URL) |
+| `/admin` | Live admin — 4 views (All Respondents / Room Average / By Question / Edit Questions) + "Show QR" overlay. No auth (open URL) |
 | `/thank-you` | Post-submission confirmation |
 | `/api/submit` | POST `{ answers: Record<string, number> }` → saves, returns `{x,y}` |
 | `/api/responses` | GET all responses (incl. raw `answers`) |
+| `/api/questions` | GET all questions (DB-backed); PATCH `{ id, text, short, weight }` → edit one |
 | `/api/seed?n=20` | POST — insert N plausible exec responses (demo/rehearsal data) |
 | `/api/reset` | POST — delete ALL responses (wired to the "Clear all" admin button) |
 
@@ -27,7 +28,16 @@ The goal: surface visually that the audience is in the early stages of their AI 
 
 ## The 16 Questions
 
-Single source of truth: `src/lib/questions.ts`. Never hardcode questions elsewhere.
+Canonical defaults live in `src/lib/questions.ts` — never hardcode questions
+elsewhere. At runtime they're **DB-backed and editable**: a `questions` table
+(seeded from the defaults on first touch) stores the editable fields, and the
+survey, scoring, seed, and By-Question view all read from it via `getQuestions()`.
+Admins edit text / short label / weight from the **Edit Questions** tab in
+`/admin` (axis and the fixed 8+8 set are locked — no add/delete). Editing a
+weight only affects scoring for *future* submissions; already-stored responses
+keep their computed `x/y`. The defaults are also the fallback if the DB is empty
+or unreachable, so the survey never breaks. See `getQuestions()` /
+`updateQuestion()` in `src/lib/storage.ts`.
 
 ### X-Axis: Experimentation (easy → hard, higher weight = harder)
 
@@ -149,8 +159,8 @@ Still open:
 ## Key Files
 
 ```
-src/lib/questions.ts              Questions, weights, short labels, calculateScores()/rescale()
-src/lib/storage.ts                Neon Postgres read/write (+ clearAllResponses)
+src/lib/questions.ts              Default questions + calculateScores(answers, questions?)/rescale()
+src/lib/storage.ts                Neon Postgres read/write — responses + questions (getQuestions/updateQuestion)
 src/app/page.tsx                  Survey: branded intro + question flow (client)
 src/app/admin/page.tsx            Admin: 3-view tabs + presentation controls (refresh 5s)
 src/app/qr/page.tsx               QR code page for the slide
@@ -158,8 +168,10 @@ src/app/thank-you/page.tsx        Confirmation page
 src/components/Brand.tsx          Logo, Wordmark, HeaderBar (brand chrome)
 src/components/QuadrantChart.tsx  SVG quadrant chart (teal dots, amber avg, reveal anim)
 src/components/QuestionBreakdown.tsx  Per-question average bars (the "where they fall off" view)
+src/components/QuestionEditor.tsx     Edit Questions tab — per-question text/short/weight editor
 src/app/api/submit/route.ts       POST — save a response
 src/app/api/responses/route.ts    GET — all responses
+src/app/api/questions/route.ts    GET all questions · PATCH one (text/short/weight)
 src/app/api/seed/route.ts         POST — seed demo data
 src/app/api/reset/route.ts        POST — clear all responses
 ```

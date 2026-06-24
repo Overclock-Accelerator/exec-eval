@@ -124,12 +124,14 @@ export const Y_QUESTIONS: Question[] = [
   },
 ]
 
+// The hardcoded arrays above are the canonical DEFAULTS — the seed used to
+// populate the DB and the fallback whenever the DB is empty or unreachable.
+// At runtime, questions (text/short/weight) can be edited via /admin and are
+// read back from Postgres; see src/lib/storage.ts.
 export const ALL_QUESTIONS: Question[] = [...X_QUESTIONS, ...Y_QUESTIONS]
 
 // X weight sum = 1+1+2+2+3+3+4+5 = 21
-// Y weight sum = 1+1+2+2+3+3+4+4 = 20
-const X_WEIGHT_SUM = X_QUESTIONS.reduce((s, q) => s + q.weight, 0)
-const Y_WEIGHT_SUM = Y_QUESTIONS.reduce((s, q) => s + q.weight, 0)
+// Y weight sum = 1+1+2+2+3+3+4+4 = 20 (with default weights)
 
 // Rescale weighted raw score to 0–10 across the *achievable* range.
 // Answers are 1–5, so the minimum raw score is WEIGHT_SUM (all 1s) and the
@@ -138,17 +140,25 @@ const Y_WEIGHT_SUM = Y_QUESTIONS.reduce((s, q) => s + q.weight, 0)
 // corner — which makes the live reveal land harder. All-3s ("Somewhat") = 5.0,
 // the quadrant midpoint.
 function rescale(raw: number, weightSum: number): number {
+  if (weightSum <= 0) return 0
   const min = weightSum // all answers = 1
   const span = weightSum * 5 - min // all answers = 5
   const score = ((raw - min) / span) * 10
   return parseFloat(Math.max(0, Math.min(10, score)).toFixed(2))
 }
 
-export function calculateScores(answers: Record<string, number>): { x: number; y: number } {
-  const xRaw = X_QUESTIONS.reduce((s, q) => s + (answers[q.id] ?? 1) * q.weight, 0)
-  const yRaw = Y_QUESTIONS.reduce((s, q) => s + (answers[q.id] ?? 1) * q.weight, 0)
+// Scoring works off whatever question set it's given (default or DB-edited), so
+// editing a weight in admin also shifts the achievable range it rescales across.
+export function calculateScores(
+  answers: Record<string, number>,
+  questions: Question[] = ALL_QUESTIONS
+): { x: number; y: number } {
+  const xq = questions.filter((q) => q.axis === 'x')
+  const yq = questions.filter((q) => q.axis === 'y')
+  const xRaw = xq.reduce((s, q) => s + (answers[q.id] ?? 1) * q.weight, 0)
+  const yRaw = yq.reduce((s, q) => s + (answers[q.id] ?? 1) * q.weight, 0)
   return {
-    x: rescale(xRaw, X_WEIGHT_SUM),
-    y: rescale(yRaw, Y_WEIGHT_SUM),
+    x: rescale(xRaw, xq.reduce((s, q) => s + q.weight, 0)),
+    y: rescale(yRaw, yq.reduce((s, q) => s + q.weight, 0)),
   }
 }

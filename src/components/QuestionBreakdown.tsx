@@ -1,6 +1,6 @@
 'use client'
 
-import { X_QUESTIONS, Y_QUESTIONS, type Question } from '@/lib/questions'
+import { ALL_QUESTIONS, type Question } from '@/lib/questions'
 
 interface Resp {
   answers: Record<string, number>
@@ -36,7 +36,15 @@ function Row({ q, responses, accent }: { q: Question; responses: Resp[]; accent:
   )
 }
 
-export default function QuestionBreakdown({ responses }: { responses: Resp[] }) {
+export default function QuestionBreakdown({
+  responses,
+  questions = ALL_QUESTIONS,
+}: {
+  responses: Resp[]
+  questions?: Question[]
+}) {
+  const xQuestions = questions.filter((q) => q.axis === 'x')
+  const yQuestions = questions.filter((q) => q.axis === 'y')
   return (
     <div className="w-full max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-2">
       <div>
@@ -45,7 +53,7 @@ export default function QuestionBreakdown({ responses }: { responses: Resp[] }) 
           <h3 className="text-sm font-semibold text-white">Experimentation</h3>
           <span className="text-xs text-mute ml-auto">easy → hard</span>
         </div>
-        {X_QUESTIONS.map((q) => (
+        {xQuestions.map((q) => (
           <Row key={q.id} q={q} responses={responses} accent="#2de3c7" />
         ))}
       </div>
@@ -55,7 +63,7 @@ export default function QuestionBreakdown({ responses }: { responses: Resp[] }) 
           <h3 className="text-sm font-semibold text-white">Conceptual Understanding</h3>
           <span className="text-xs text-mute ml-auto">easy → hard</span>
         </div>
-        {Y_QUESTIONS.map((q) => (
+        {yQuestions.map((q) => (
           <Row key={q.id} q={q} responses={responses} accent="#f2a93b" />
         ))}
       </div>

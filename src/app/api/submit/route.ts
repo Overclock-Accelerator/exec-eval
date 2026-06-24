@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { calculateScores } from '@/lib/questions'
-import { saveResponse } from '@/lib/storage'
+import { getQuestions, saveResponse } from '@/lib/storage'
 
 export async function POST(req: Request) {
   try {
@@ -8,7 +8,8 @@ export async function POST(req: Request) {
     if (!answers || typeof answers !== 'object') {
       return NextResponse.json({ error: 'Invalid answers' }, { status: 400 })
     }
-    const { x, y } = calculateScores(answers)
+    const questions = await getQuestions()
+    const { x, y } = calculateScores(answers, questions)
     const response = await saveResponse(answers, x, y)
     return NextResponse.json({ success: true, id: response.id, x, y })
   } catch (err) {

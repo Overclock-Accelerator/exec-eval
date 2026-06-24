@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { ALL_QUESTIONS } from '@/lib/questions'
+import { useEffect, useState } from 'react'
+import { ALL_QUESTIONS, type Question } from '@/lib/questions'
 import { Wordmark } from '@/components/Brand'
 
 const SCALE_LABELS: Record<number, string> = {
@@ -19,9 +19,25 @@ export default function SurveyPage() {
   const [selected, setSelected] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Start from the bundled defaults so the intro renders instantly, then swap in
+  // any admin edits fetched from the DB before the respondent begins.
+  const [questions, setQuestions] = useState<Question[]>(ALL_QUESTIONS)
 
-  const question = ALL_QUESTIONS[current]
-  const total = ALL_QUESTIONS.length
+  useEffect(() => {
+    fetch('/api/questions')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.questions) && data.questions.length > 0) {
+          setQuestions(data.questions)
+        }
+      })
+      .catch(() => {
+        // keep the bundled defaults
+      })
+  }, [])
+
+  const question = questions[current]
+  const total = questions.length
   const progress = (current / total) * 100
   const isLast = current === total - 1
   const part = current < 8 ? 1 : 2
