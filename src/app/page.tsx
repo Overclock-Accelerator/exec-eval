@@ -78,7 +78,7 @@ export default function SurveyPage() {
             <div className="mt-6 flex items-center justify-center gap-5 text-xs text-mute">
               <span>16 questions</span>
               <span className="w-1 h-1 rounded-full bg-line" />
-              <span>~2 minutes</span>
+              <span>~5 minutes</span>
               <span className="w-1 h-1 rounded-full bg-line" />
               <span>Anonymous</span>
             </div>
