@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { ALL_QUESTIONS, calculateScores, type Question } from '@/lib/questions'
 import { saveResponse } from '@/lib/storage'
+import { pinOk, unauthorized } from '@/lib/auth'
 
 // Generate plausible exec-audience answers. Most respondents are early on the
 // journey (low answers, especially on the harder/higher-weight questions), with
@@ -15,6 +16,7 @@ function sampleAnswer(q: Question, advanced: boolean): number {
 }
 
 export async function POST(req: Request) {
+  if (!pinOk(req)) return unauthorized()
   try {
     const { searchParams } = new URL(req.url)
     const n = Math.max(1, Math.min(60, Number(searchParams.get('n')) || 20))
