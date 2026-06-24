@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAllResponses } from '@/lib/storage'
-import { pinOk, unauthorized } from '@/lib/auth'
 
-export async function GET(req: Request) {
-  if (!pinOk(req)) return unauthorized()
+export async function GET() {
   try {
     const responses = await getAllResponses()
     return NextResponse.json({ responses })

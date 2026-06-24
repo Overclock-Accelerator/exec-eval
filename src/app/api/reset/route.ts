@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { clearAllResponses } from '@/lib/storage'
-import { pinOk, unauthorized } from '@/lib/auth'
 
-export async function POST(req: Request) {
-  if (!pinOk(req)) return unauthorized()
+export async function POST() {
   try {
     await clearAllResponses()
     return NextResponse.json({ success: true })

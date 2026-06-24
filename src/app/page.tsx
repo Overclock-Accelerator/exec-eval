@@ -126,7 +126,7 @@ export default function SurveyPage() {
           </div>
 
           {/* Question */}
-          <h2 className="text-xl sm:text-2xl font-medium text-white leading-snug mb-8">
+          <h2 className="text-base sm:text-lg font-normal text-white leading-relaxed mb-8">
             {question.text}
           </h2>
 
